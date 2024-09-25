@@ -1,0 +1,499 @@
+package edu.davis.cs.ecs036c
+
+/**
+ * Welcome to the first normal data structure homework assignment for ECS 032C
+ *
+ * In this you will be implementing many functions for the most
+ * basic LinkedList class.  It is strongly advised that you start by
+ * implementing toLinkedList (which accepts a vararg array), append
+ * (which toLinkedList uses), and get first, as those 3 function are
+ * required for all the test code.
+ *
+ * You will also need to write a lot of tests, as we provide only the
+ * most basic tests and the autograder deliberately hides the test results
+ * until after the grades are released.
+ */
+
+/**
+ * A placeholder function that we use to specify that you need
+ * to implement this particular piece of code
+ */
+fun toDo(): Nothing {
+    throw Error("Need to implement")
+}
+
+/**
+ * This is the data class for a cell within the LinkedList.  You won't need to
+ * add anything to this class.
+ */
+data class LinkedListCell<T>(var data:T, var next:LinkedListCell<T>?) {
+}
+
+/**
+ * This is the basic LinkedList class, you will need to
+ * implement several member functions in this class to
+ * implement a LinkedList library.
+ */
+class LinkedList<T> {
+    // You should have 3 variables:
+    // A pointer to the first cell or null
+    // A pointer to the last cell or null
+    // An internal record to keep track of the number
+    // of elements present.
+    private var headCell: LinkedListCell<T>? = null
+    private var tailCell: LinkedListCell<T>? = null
+    private var privateSize = 0
+
+    /**
+     * This allows .size to be accessed but not set, with the private
+     * variable to track the actual size elsewhere.
+     */
+    val size: Int
+        get() = privateSize
+
+
+    /**
+     * You want to implement an iterator for the DATA in the LinkedList,
+     * So you will need to implement a computeNext() function.
+     *
+     * Note: Kotlin will continue to treat at as nullable within the
+     * computeNext function, because you could have some concurrent access
+     * that could change the structure of the list.
+     *
+     * Thus in accessing the data one option you can use is an elvis operator ?:
+     * to throw an IllegalStateException if there is an inconsistency
+     * during iteration.
+     *
+     * We will not check whether your code would actually throw such an error,
+     * because we aren't assuming the LinkedList class is thread safe, but by
+     * doing that you can make the Kotlin type system happy.
+     *
+     * As an alternative you could just use the !!. operation that
+     * will throw a NullPointerException instead.  Either are acceptable.
+     */
+    class LinkedListIterator<T>(var at: LinkedListCell<T>?) : AbstractIterator<T>() {
+        override fun computeNext(): Unit {
+            if (at != null) {
+                val data = at?.data ?: throw IllegalStateException("Inconsistent state during iteration")
+                // move to the next node
+                at = at?.next
+                    setNext(data)
+            } else {
+                done()
+            }
+
+        }
+    }
+
+    /**
+     * You will also want an iterator for the cells themselves in the LinkedList,
+     * as there are multiple cases where you are going to want to iterate over
+     * the cells not just the data in the cells.
+     */
+    class LinkedListCellIterator<T>(var at: LinkedListCell<T>?) : AbstractIterator<LinkedListCell<T>>() {
+        override fun computeNext(): Unit {
+            if (at != null) {
+                // save the currrent cell and move to the next cell
+                val CurCell = at
+                at = at?.next
+
+                // if the current cell is not null, sets the next value of the iterator to the current cell
+                if (CurCell != null) {
+                    setNext(CurCell)
+                }
+
+            } else {
+                done()
+            }
+        }
+    }
+
+
+    /**
+     * Append ads an item to the end of the list.  It should be
+     * a constant-time (O(1)) function regardless of the number
+     * of elements in the LinkedList
+     */
+    fun append(item: T) {
+        val newCell = LinkedListCell(item, null)
+        if (headCell == null) {
+            headCell = newCell
+            tailCell = newCell
+        } else {
+            tailCell?.next = newCell
+            tailCell = newCell
+
+        }
+
+        privateSize++
+    }
+
+    /**
+     * Adds an item to the START of the list.  It should be
+     * a constant-time (O(1)) function.
+     */
+    fun prepend(item: T) {
+        val newNode = LinkedListCell(item, null)
+        val currentHead = headCell
+        if(headCell == null)
+        {
+            headCell = newNode
+            tailCell = newNode
+        }
+        else {
+            newNode.next = currentHead
+            headCell = newNode
+        }
+        privateSize++
+    }
+
+    /**
+     * Get the data at the specified index.  For a linked-list
+     * this is an O(N) operation in general, but it should be O(1)
+     * for both the first and last element.
+     *
+     * Invalid indices should throw an IndexOutOfBoundsException
+     */
+    operator fun get(index: Int): T? {
+        if (index < 0 || index >= privateSize) {
+            throw IndexOutOfBoundsException("Negative Index")
+        }
+
+        if (index == 0) {
+            //O(1)
+            return headCell?.data
+        } else if (index == privateSize - 1) {
+            // O(1)
+            return tailCell?.data
+        } else {
+            // O(N)
+            var current = headCell
+            repeat(index)
+            {
+                current = current?.next
+            }
+            return current?.data
+        }
+
+    }
+
+    /**
+     * Replace the data at the specified index.  Again, this is an
+     * O(N) operation, except if it is the first or last element
+     * in which case it should be O(1)
+     *
+     * Invalid indexes should throw an IndexOutOfBoundsException
+     */
+    operator fun set(index: Int, data: T): Unit {
+        if (index < 0 || index >= privateSize) {
+            throw IndexOutOfBoundsException("Invalid Index")
+        }
+        // If index == 0
+        if (index == 0) {
+            headCell?.data = data
+        }
+        // If index == the last
+        else if (index == privateSize - 1) {
+            tailCell?.data = data
+        } else {
+            // O(N), from index = 1
+            var current = headCell?.next
+            var x = 1
+            while (x != index) {
+                current = current?.next
+                x++
+            }
+            current?.data = data
+        }
+
+    }
+
+    /**
+     * This inserts the element at the index.
+     *
+     * If the index isn't valid, throw an IndexOutOfBounds exception
+     *
+     * This should be O(1) for the start and the end, O(n) for all other cases.
+     */
+    fun insertAt(index: Int, value: T) {
+        if (index < 0 || index > privateSize) {
+            throw IndexOutOfBoundsException("Invalid Index")
+        }
+
+        val newNode = LinkedListCell(value, null)
+        // If index == 0, the newNode becomes the new head
+        if (index == 0) {
+            // if the head is null at the beginning
+            if(headCell == null){
+                headCell = newNode
+                tailCell = newNode
+            }
+            else
+            {
+                newNode.next = headCell
+                headCell = newNode
+            }
+
+            // size++
+            privateSize++
+
+        }
+        // If index > the last index, the newNode becomes the new tail
+        else if (index == privateSize ) {
+            if(headCell == null)
+            {
+                headCell = newNode
+                tailCell = newNode
+            }
+            tailCell?.next = newNode
+            tailCell = newNode
+            // size++
+            privateSize++
+        } else {
+            // O(N), from index = 1
+            var preCurrent = headCell
+            var current = headCell?.next
+            var x = 1
+            while (x != index) {
+                x++
+                preCurrent = current
+                current = current?.next
+            }
+
+            preCurrent?.next = newNode
+            newNode.next = current
+            privateSize++
+        }
+    }
+
+    /**
+     * This removes the element at the index and return the data that was there.
+     *
+     * Again, if the data doesn't exist it should throw an
+     * IndexOutOfBoundsException.
+     *
+     * This is O(N), and there is no shortcut possible for the last element
+     */
+    fun removeAt(index: Int): T {
+        // An example of what you should do on a state that you
+        // know is unreacable but the compiler doesn't necessarily
+        // know is unreachable, so it doesn't complain about a lack
+        // of a return value
+        if (index < 0 || index >= privateSize) {
+            throw IndexOutOfBoundsException("Invalid Index")
+        }
+
+        var current = headCell
+        var preCurrent : LinkedListCell<T> ?= null
+        var x = 0
+        val Data: T?
+        // removing the head, index == 0
+        if (x == index) {
+            val currentHead = headCell ?: throw IllegalStateException("Empty list")
+            headCell = currentHead.next
+            Data = currentHead.data
+
+            // if removing the only node, which means the new headCell will be null, update the tail cell to null
+            if (headCell == null) {
+                tailCell = null
+            }
+
+            privateSize--
+        } else {
+            while (x != index) {
+                x++
+                preCurrent = current
+                current = current?.next
+            }
+            // skip the current node then remove it
+            preCurrent?.next = current?.next
+            Data = current?.data
+
+            // if the removing cell is the tail
+            if (current == tailCell) {
+                tailCell = preCurrent
+            }
+
+            privateSize--
+        }
+        return Data ?: throw IllegalStateException("Unexpected null value in the linked list")
+    }
+
+    /**
+     * This does a linear search for the item to see
+     * what index it is at, or -1 if it isn't in the list
+     */
+    fun indexOf(item: T): Int {
+        var index: Int = 0
+        var current = headCell
+        while (index <= privateSize - 1) {
+            if (current?.data == item) {
+                return index
+            } else {
+                current = current?.next
+                index++
+            }
+        }
+
+        return -1
+    }
+
+    /**
+     * Because we have indexOf already defined, we can do
+     * contains as a one-liner, so we can do (x in list) and
+     * have that convention work.
+     */
+    operator fun contains(item: T) = (indexOf(item) != -1)
+
+
+    /**
+     * This needs to return an Iterator for the data in the cells.  This allows
+     * the "for (x in aLinkedList) {...} to work as expected.
+     *
+     * You want your iterator to be one of the first things you ensure
+     * works because you are going to want to do things like
+     * for (x in this) {...} in your own internal code
+     */
+    operator fun iterator() = LinkedListIterator(headCell)
+
+    /**
+     * An internal helper function that returns an iterator for the
+     * cells themselves.  This is very useful for both mapInPlace and
+     * other functions you may need to implement.
+     */
+    fun cellIterator() = LinkedListCellIterator(headCell)
+
+    /**
+     * A very useful function for debugging, as it will print out
+     * the list in a convenient form.  Actually showing you the code
+     * as is rather than having you implement it, because it gives you
+     * an idea of how powerful things are now that you have an iterator
+     * and can convert that iterator to a sequence (which supports fold).
+     */
+    override fun toString(): String {
+        return iterator()
+            .asSequence()
+            .fold("[") { initial, item ->
+                if (initial != "[") initial + ", " + item.toString()
+                else "[" + item.toString()
+            } + "]"
+    }
+
+    /**
+     * Of course, however, you have to implement your own version of fold
+     * directly...  If the list is empty, fold returns the initial value.
+     *
+     * Otherwise, it accumulates a new value by applying the function
+     * for each element.  See the toString() function for an example of
+     * how to use fold
+     */
+    fun <R> fold(initial: R, operation: (R, T) -> R): R {
+        var folder = initial
+
+        // "this" == the iterator, when applying the fold() under that iterator
+        for (elemet in this) {
+            folder = operation(folder, elemet)
+        }
+        return folder
+    }
+
+    /**
+     * And you need to implement map, creating a NEW LinkedList
+     * and applying the function to each element in the old list.
+     *
+     * One useful note, because append is constant time, you
+     * can just go in order and make a new list.
+     */
+    fun <R> map(operator: (T) -> R): LinkedList<R> {
+        //creat a new linkedList
+        val newList = LinkedList<R>()
+
+        if (headCell != null) {
+            for (element in this) {
+                // use the operator to convert T to R
+                val mappedNode = operator(element)
+                newList.append(mappedNode)
+            }
+        }
+        return newList
+    }
+
+    /**
+     * You also need to implement mapInPlace.  mapInPlace is like Map with a difference:
+     * instead of creating a new list it applies the function to each data
+     * element and uses that to replace the elements in the existing list, returning
+     * the list itself when done.
+     */
+    fun mapInPlace(operator: (T) -> T): LinkedList<T> {
+        var currentNode = headCell
+
+        // if headCell is not null
+        while (currentNode != null) {
+            currentNode.data = operator(currentNode.data)
+            currentNode = currentNode.next
+        }
+        return this // return this linkedlist
+    }
+
+    /**
+     * Filter creates a new list by only adding the elements in the original list
+     * that are true when the operator is applied to the element.
+     */
+    fun filter(operator: (T) -> Boolean): LinkedList<T> {
+        val newList = LinkedList<T>()
+
+        if (headCell != null) {
+            for (nodes in this) {
+                if (operator(nodes)) {
+                    newList.append(nodes)
+                }
+            }
+        }
+        return newList
+    }
+
+    /**
+     * And filterInPlace.  filterInPlace will keep only the elements
+     * that are true.
+     */
+    fun filterInPlace(operator: (T) -> Boolean): LinkedList<T> {
+        var currentNode = headCell
+        var preCurrent: LinkedListCell<T>? = null
+
+        while (currentNode != null) {
+            // when the current node is false, then we skip the current node
+            if (!operator(currentNode.data)) {
+                // if the preCurrent is null, which means is removing the head cell
+                if (preCurrent == null) {
+                    currentNode = currentNode.next
+                    headCell = currentNode
+                }
+                //otherwise skip the current node
+                else {
+                    preCurrent.next = currentNode.next
+                    currentNode = currentNode.next
+                }
+            }
+            // when the current node is true, then iterate
+            else {
+                preCurrent = currentNode
+                currentNode = currentNode.next
+            }
+        }
+        return this
+
+    }
+}
+
+    /**
+     * And this function builds a new LinkedList of the given type with
+     * a vararg (variable argument) set of inputs.  You should
+     * implement this first as all other tests will depend on this.
+     */
+    fun <T> toLinkedList(vararg input: T): LinkedList<T> {
+        val retval = LinkedList<T>()
+        for (item in input) {
+            retval.append(item)
+        }
+        return retval
+    }
